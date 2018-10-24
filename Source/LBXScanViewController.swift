@@ -73,7 +73,10 @@ open class LBXScanViewController: UIViewController, UIImagePickerControllerDeleg
         
         drawScanView()
         
-        perform(#selector(LBXScanViewController.startScan), with: nil, afterDelay: 0.3)
+        DispatchQueue.main.asyncAfter(deadline: .now()) {
+            self.startScan()
+        }
+//        perform(#selector(LBXScanViewController.startScan), with: nil, afterDelay: 0.3)
     }
     
     @objc open func startScan()
