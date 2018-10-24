@@ -126,7 +126,7 @@ open class LBXScanViewController: UIViewController, UIImagePickerControllerDeleg
             self.view.addSubview(qRScanView!)
             delegate?.drawwed()
         }
-        qRScanView?.deviceStartReadying(readyStr: readyString)
+//        qRScanView?.deviceStartReadying(readyStr: readyString)
         
     }
    
