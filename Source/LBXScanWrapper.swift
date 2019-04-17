@@ -582,15 +582,15 @@ open class LBXScanWrapper: NSObject,AVCaptureMetadataOutputObjectsDelegate {
     //MARK: ----图像处理
     
     /**
-
-    @brief  图像中间加logo图片
-    @param srcImg    原图像
-    @param LogoImage logo图像
-    @param logoSize  logo图像尺寸
-    @return 加Logo的图像
-    */
+     
+     @brief  图像中间加logo图片
+     @param srcImg    原图像
+     @param LogoImage logo图像
+     @param logoSize  logo图像尺寸
+     @return 加Logo的图像
+     */
     static public func addImageLogo(srcImg:UIImage,logoImg:UIImage,logoSize:CGSize )->UIImage
-
+        
     {
         UIGraphicsBeginImageContext(srcImg.size);
         srcImg.draw(in: CGRect(x: 0, y: 0, width: srcImg.size.width, height: srcImg.size.height))

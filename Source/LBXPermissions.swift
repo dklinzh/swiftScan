@@ -14,7 +14,7 @@ import AssetsLibrary
 
 
 class LBXPermissions: NSObject {
-
+    
     //MARK: ----获取相册权限
     static func authorizePhotoWith(comletion:@escaping (Bool)->Void )
     {
@@ -30,6 +30,8 @@ class LBXPermissions: NSObject {
                     comletion(status == PHAuthorizationStatus.authorized ? true:false)
                 }
             })
+        @unknown default:
+            fatalError()
         }
     }
     
@@ -54,6 +56,8 @@ class LBXPermissions: NSObject {
                     comletion(granted)
                 }
             })
+        @unknown default:
+            fatalError()
         }
     }
     

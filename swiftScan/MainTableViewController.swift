@@ -59,7 +59,7 @@ class MainTableViewController: UITableViewController, UIImagePickerControllerDel
      func tableView(tableView: UITableView, didSelectRowAtIndexPath indexPath: NSIndexPath) {
 
         //objc_msgSend对应方法好像没有
-        let sel = NSSelectorFromString(arrayItems[indexPath.row].last!)
+        let _ = NSSelectorFromString(arrayItems[indexPath.row].last!)
 
         self.InnerStyle()
 
@@ -321,14 +321,13 @@ class MainTableViewController: UITableViewController, UIImagePickerControllerDel
     }
 
     // MARK: - ----相册选择图片识别二维码 （条形码没有找到系统方法）
-    func imagePickerController(picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [String: AnyObject]) {
+    func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
         picker.dismiss(animated: true, completion: nil)
-        
-        var image:UIImage? = info[UIImagePickerController.InfoKey.editedImage.rawValue] as? UIImage
+        var image:UIImage? = info[UIImagePickerController.InfoKey.editedImage] as? UIImage
         
         if (image == nil )
         {
-            image = info[UIImagePickerController.InfoKey.originalImage.rawValue] as? UIImage
+            image = info[UIImagePickerController.InfoKey.originalImage] as? UIImage
         }
 
         if(image == nil) {

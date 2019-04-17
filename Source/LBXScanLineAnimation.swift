@@ -9,7 +9,7 @@
 import UIKit
 
 class LBXScanLineAnimation: UIImageView {
-
+    
     var isAnimationing = false
     var animationRect: CGRect = CGRect.zero
     
@@ -57,9 +57,9 @@ class LBXScanLineAnimation: UIImageView {
             
             self.frame = frame;
             
-            }, completion:{ (value: Bool) -> Void in
-                                
-                self.perform(#selector(LBXScanLineAnimation.stepAnimation), with: nil, afterDelay: 0.3)
+        }, completion:{ (value: Bool) -> Void in
+            
+            self.perform(#selector(LBXScanLineAnimation.stepAnimation), with: nil, afterDelay: 0.3)
         })
         
     }
@@ -77,10 +77,10 @@ class LBXScanLineAnimation: UIImageView {
     
     deinit
     {
-//        print("LBXScanLineAnimation deinit")
+        //        print("LBXScanLineAnimation deinit")
         stopStepAnimating()
     }
-
+    
 }
 
 
