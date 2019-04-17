@@ -55,7 +55,7 @@ open class LBXScanWrapper: NSObject,AVCaptureMetadataOutputObjectsDelegate {
     var isNeedScanResult:Bool = true
     
     //缩放的最大倍数
-    var maxScale: CGFloat = 4.0
+    var maxScale: CGFloat = 8.0
     
     //缩放的最小倍数
     var minScale: CGFloat = 1.0
@@ -157,14 +157,15 @@ open class LBXScanWrapper: NSObject,AVCaptureMetadataOutputObjectsDelegate {
             return
         }
         
+        let rate: Float = 8.0
         do {
             try input.device.lockForConfiguration()
             if isZoom {
                 currentScale = maxScale
-                input.device.ramp(toVideoZoomFactor: maxScale, withRate: 10)
+                input.device.ramp(toVideoZoomFactor: maxScale, withRate: rate)
             } else {
                 currentScale = minScale
-                input.device.ramp(toVideoZoomFactor: minScale, withRate: 10)
+                input.device.ramp(toVideoZoomFactor: minScale, withRate: rate)
             }
             input.device.unlockForConfiguration()
         } catch let error as NSError {
@@ -173,7 +174,8 @@ open class LBXScanWrapper: NSObject,AVCaptureMetadataOutputObjectsDelegate {
     }
     
     func setVideoScale(scale: CGFloat) {
-        if scale * currentScale > maxScale || scale * currentScale < minScale {
+        let num = scale * currentScale
+        if num > maxScale || num < minScale {
             return
         } else {
             guard let input = input else {
@@ -182,7 +184,7 @@ open class LBXScanWrapper: NSObject,AVCaptureMetadataOutputObjectsDelegate {
             
             do {
                 try input.device.lockForConfiguration()
-                input.device.ramp(toVideoZoomFactor: scale * currentScale, withRate: 100)
+                input.device.ramp(toVideoZoomFactor: num, withRate: 2.0)
                 input.device.unlockForConfiguration()
                 currentScale = scale * currentScale
             } catch let error as NSError {

@@ -70,17 +70,12 @@ open class LBXScanViewController: UIViewController, UIImagePickerControllerDeleg
     }
     
     @objc func pinchTap(pinch: UIPinchGestureRecognizer) {
-        var _scale: CGFloat
-        if pinch.scale < 4 || pinch.scale > 0.25 {
-            _scale = pinch.scale
-        } else if pinch.scale > 4 {
-            _scale = 4
+        if pinch.scale > 8 {
             _isZoom = true
-        } else {
-            _scale = 0.25
+        } else if pinch.scale < 0.125 {
             _isZoom = false
         }
-        self.scanObj?.setVideoScale(scale: _scale)
+        self.scanObj?.setVideoScale(scale: pinch.scale)
     }
     
     open func setNeedCodeImage(needCodeImg:Bool)
