@@ -75,7 +75,8 @@ open class LBXScanViewController: UIViewController, UIImagePickerControllerDeleg
         } else if pinch.scale < 0.125 {
             _isZoom = false
         }
-        self.scanObj?.setVideoScale(scale: pinch.scale)
+        let finish = pinch.state == .ended
+        self.scanObj?.setVideoScale(scale: pinch.scale, finish: finish)
     }
     
     open func setNeedCodeImage(needCodeImg:Bool)

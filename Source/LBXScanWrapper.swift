@@ -173,23 +173,28 @@ open class LBXScanWrapper: NSObject,AVCaptureMetadataOutputObjectsDelegate {
         }
     }
     
-    func setVideoScale(scale: CGFloat) {
-        let num = scale * currentScale
-        if num > maxScale || num < minScale {
+    func setVideoScale(scale: CGFloat, finish: Bool) {
+        guard let input = input else {
             return
-        } else {
-            guard let input = input else {
-                return
-            }
-            
-            do {
-                try input.device.lockForConfiguration()
-                input.device.ramp(toVideoZoomFactor: num, withRate: 2.0)
-                input.device.unlockForConfiguration()
-                currentScale = scale * currentScale
-            } catch let error as NSError {
-                print("device.lockForConfiguration(): \(error)")
-            }
+        }
+        
+        var factor = scale * currentScale
+        if factor < minScale {
+            factor = minScale
+        } else if factor > maxScale {
+            factor = maxScale
+        }
+        
+        do {
+            try input.device.lockForConfiguration()
+            input.device.ramp(toVideoZoomFactor: factor, withRate: 2.0)
+            input.device.unlockForConfiguration()
+        } catch let error as NSError {
+            print("device.lockForConfiguration(): \(error)")
+        }
+        
+        if finish {
+            currentScale = factor
         }
     }
     
