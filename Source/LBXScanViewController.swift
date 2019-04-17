@@ -44,6 +44,8 @@ open class LBXScanViewController: UIViewController, UIImagePickerControllerDeleg
     //相机启动提示文字
     public var readyString:String! = "loading"
     
+    private var _isZoom: Bool = true
+    
     override open func viewDidLoad() {
         super.viewDidLoad()
         
@@ -52,6 +54,33 @@ open class LBXScanViewController: UIViewController, UIImagePickerControllerDeleg
         // [self.view addSubview:_qRScanView];
         self.view.backgroundColor = UIColor.black
         self.edgesForExtendedLayout = UIRectEdge(rawValue: 0)
+        
+        self.view.isUserInteractionEnabled = true
+        let tap = UITapGestureRecognizer.init(target: self, action: #selector(doubleTap(tap:)))
+        tap.numberOfTapsRequired = 2
+        self.view.addGestureRecognizer(tap)
+        
+        let pinch = UIPinchGestureRecognizer.init(target: self, action: #selector(pinchTap(pinch:)))
+        self.view.addGestureRecognizer(pinch)
+    }
+    
+    @objc func doubleTap(tap: UITapGestureRecognizer) {
+        self.scanObj?.setVideoScale(isZoom: _isZoom)
+        _isZoom = !_isZoom
+    }
+    
+    @objc func pinchTap(pinch: UIPinchGestureRecognizer) {
+        var _scale: CGFloat
+        if pinch.scale < 4 || pinch.scale > 0.25 {
+            _scale = pinch.scale
+        } else if pinch.scale > 4 {
+            _scale = 4
+            _isZoom = true
+        } else {
+            _scale = 0.25
+            _isZoom = false
+        }
+        self.scanObj?.setVideoScale(scale: _scale)
     }
     
     open func setNeedCodeImage(needCodeImg:Bool)

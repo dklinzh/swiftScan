@@ -54,6 +54,14 @@ open class LBXScanWrapper: NSObject,AVCaptureMetadataOutputObjectsDelegate {
     //当前扫码结果是否处理
     var isNeedScanResult:Bool = true
     
+    //缩放的最大倍数
+    var maxScale: CGFloat = 4.0
+    
+    //缩放的最小倍数
+    var minScale: CGFloat = 1.0
+    
+    //当前倍数
+    var currentScale: CGFloat = 1.0
     /**
      初始化设备
      - parameter videoPreView: 视频显示UIView
@@ -139,6 +147,46 @@ open class LBXScanWrapper: NSObject,AVCaptureMetadataOutputObjectsDelegate {
             catch let error as NSError {
                 print("device.lockForConfiguration(): \(error)")
                 
+            }
+        }
+    }
+    
+    //isZoom: 是否缩放，true为是
+    func setVideoScale(isZoom: Bool) {
+        guard let input = input else {
+            return
+        }
+        
+        do {
+            try input.device.lockForConfiguration()
+            if isZoom {
+                currentScale = maxScale
+                input.device.ramp(toVideoZoomFactor: maxScale, withRate: 10)
+            } else {
+                currentScale = minScale
+                input.device.ramp(toVideoZoomFactor: minScale, withRate: 10)
+            }
+            input.device.unlockForConfiguration()
+        } catch let error as NSError {
+            print("device.lockForConfiguration(): \(error)")
+        }
+    }
+    
+    func setVideoScale(scale: CGFloat) {
+        if scale * currentScale > maxScale || scale * currentScale < minScale {
+            return
+        } else {
+            guard let input = input else {
+                return
+            }
+            
+            do {
+                try input.device.lockForConfiguration()
+                input.device.ramp(toVideoZoomFactor: scale * currentScale, withRate: 100)
+                input.device.unlockForConfiguration()
+                currentScale = scale * currentScale
+            } catch let error as NSError {
+                print("device.lockForConfiguration(): \(error)")
             }
         }
     }
