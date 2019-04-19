@@ -41,7 +41,7 @@ class QQScanViewController: LBXScanViewController {
         setNeedCodeImage(needCodeImg: true)
 
         //框向上移动10个像素
-        scanStyle?.centerUpOffset += 10
+        scanStyle.centerUpOffset += 10
 
         // Do any additional setup after loading the view.
     }
@@ -132,7 +132,7 @@ class QQScanViewController: LBXScanViewController {
 
     //开关闪光灯
     @objc func openOrCloseFlash() {
-        scanObj?.changeTorch()
+        scanObj.changeTorch()
 
         isOpenedFlash = !isOpenedFlash
         

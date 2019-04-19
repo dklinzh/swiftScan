@@ -54,14 +54,37 @@ open class LBXScanWrapper: NSObject,AVCaptureMetadataOutputObjectsDelegate {
     //当前扫码结果是否处理
     var isNeedScanResult:Bool = true
     
-    //缩放的最大倍数
-    var maxScale: CGFloat = 8.0
+    /// 当前视频缩放倍数
+    private var _currentZoomFactor: CGFloat = 1.0
     
-    //缩放的最小倍数
-    var minScale: CGFloat = 1.0
+    /// 视频缩放倍数范围，最小1.0，最大8.0
+    var videoZoomFactors: (min: CGFloat, max: CGFloat) = (1.0, 8.0)
     
-    //当前倍数
-    var currentScale: CGFloat = 1.0
+    /// 是否放大镜头视频
+    var isVideoZoomIn: Bool = false {
+        didSet {
+            guard oldValue != isVideoZoomIn,
+                let input = input else {
+                    return
+            }
+            
+            let transitionRate: Float = 8.0
+            do {
+                try input.device.lockForConfiguration()
+                if isVideoZoomIn {
+                    _currentZoomFactor = videoZoomFactors.max
+                    input.device.ramp(toVideoZoomFactor: _currentZoomFactor, withRate: transitionRate)
+                } else {
+                    _currentZoomFactor = videoZoomFactors.min
+                    input.device.ramp(toVideoZoomFactor: _currentZoomFactor, withRate: transitionRate)
+                }
+                input.device.unlockForConfiguration()
+            } catch let error as NSError {
+                print("device.lockForConfiguration(): \(error)")
+            }
+        }
+    }
+    
     /**
      初始化设备
      - parameter videoPreView: 视频显示UIView
@@ -151,50 +174,34 @@ open class LBXScanWrapper: NSObject,AVCaptureMetadataOutputObjectsDelegate {
         }
     }
     
-    //isZoom: 是否缩放，true为是
-    func setVideoScale(isZoom: Bool) {
+    /// 通过捏合手势缩放镜头视频
+    ///
+    /// - Parameters:
+    ///   - pinchScale: 缩放比例
+    ///   - isfinished: 缩放动作是否结束
+    func setVideoZoom(pinchScale: CGFloat, isfinished: Bool) {
+        let zoomFactor = pinchScale * _currentZoomFactor
+        if zoomFactor <= videoZoomFactors.min {
+            isVideoZoomIn = false
+            return
+        } else if zoomFactor >= videoZoomFactors.max {
+            isVideoZoomIn = true
+            return
+        }
+        
         guard let input = input else {
             return
         }
         
-        let rate: Float = 8.0
         do {
             try input.device.lockForConfiguration()
-            if isZoom {
-                currentScale = maxScale
-                input.device.ramp(toVideoZoomFactor: maxScale, withRate: rate)
-            } else {
-                currentScale = minScale
-                input.device.ramp(toVideoZoomFactor: minScale, withRate: rate)
+            if isfinished {
+                _currentZoomFactor = zoomFactor
             }
+            input.device.ramp(toVideoZoomFactor: zoomFactor, withRate: 2.0)
             input.device.unlockForConfiguration()
         } catch let error as NSError {
             print("device.lockForConfiguration(): \(error)")
-        }
-    }
-    
-    func setVideoScale(scale: CGFloat, finish: Bool) {
-        guard let input = input else {
-            return
-        }
-        
-        var factor = scale * currentScale
-        if factor < minScale {
-            factor = minScale
-        } else if factor > maxScale {
-            factor = maxScale
-        }
-        
-        do {
-            try input.device.lockForConfiguration()
-            input.device.ramp(toVideoZoomFactor: factor, withRate: 2.0)
-            input.device.unlockForConfiguration()
-        } catch let error as NSError {
-            print("device.lockForConfiguration(): \(error)")
-        }
-        
-        if finish {
-            currentScale = factor
         }
     }
     

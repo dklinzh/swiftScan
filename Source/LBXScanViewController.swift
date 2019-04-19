@@ -25,18 +25,33 @@ open class LBXScanViewController: UIViewController, UIImagePickerControllerDeleg
     
     open var delegate: QRRectDelegate?
     
-    open var scanObj: LBXScanWrapper?
+    open lazy var scanObj: LBXScanWrapper = {
+        var cropRect = CGRect.zero
+        if isOpenInterestRect {
+            cropRect = LBXScanView.getScanRectWithPreView(preView: self.view, style: scanStyle)
+        }
+        
+        return LBXScanWrapper(videoPreView: self.view, objType: arrayCodeType, isCaptureImg: isNeedCodeImage, cropRect: cropRect, success: { [weak self] (arrayResult) -> Void in
+            guard let strongSelf = self else { return }
+            
+            //停止扫描动画
+            strongSelf.qRScanView.stopScanAnimation()
+            
+            strongSelf.handleCodeResult(arrayResult: arrayResult)
+        })
+    }()
     
-    open var scanStyle: LBXScanViewStyle? = LBXScanViewStyle()
+    open lazy var scanStyle: LBXScanViewStyle = LBXScanViewStyle()
     
-    open var qRScanView: LBXScanView?
-    
+    open lazy var qRScanView: LBXScanView = LBXScanView(frame: self.view.frame, vstyle: scanStyle)
     
     //启动区域识别功能
     open var isOpenInterestRect = false
     
     //识别码的类型
-    public var arrayCodeType:[AVMetadataObject.ObjectType]?
+    public var arrayCodeType: [AVMetadataObject.ObjectType] = [AVMetadataObject.ObjectType.qr as NSString,
+                                                               AVMetadataObject.ObjectType.ean13 as NSString,
+                                                               AVMetadataObject.ObjectType.code128 as NSString] as [AVMetadataObject.ObjectType]
     
     //是否需要识别后的当前图像
     public  var isNeedCodeImage = false
@@ -44,7 +59,8 @@ open class LBXScanViewController: UIViewController, UIImagePickerControllerDeleg
     //相机启动提示文字
     public var readyString:String! = "loading"
     
-    private var _isZoom: Bool = true
+    /// 扫描视频镜头是否放大
+    private var _isScanVideoZoomIn: Bool = false
     
     override open func viewDidLoad() {
         super.viewDidLoad()
@@ -56,27 +72,24 @@ open class LBXScanViewController: UIViewController, UIImagePickerControllerDeleg
         self.edgesForExtendedLayout = UIRectEdge(rawValue: 0)
         
         self.view.isUserInteractionEnabled = true
-        let tap = UITapGestureRecognizer.init(target: self, action: #selector(doubleTap(tap:)))
-        tap.numberOfTapsRequired = 2
-        self.view.addGestureRecognizer(tap)
+        let tapRecognizer = UITapGestureRecognizer(target: self, action: #selector(_doubleTapAction(recognizer:)))
+        tapRecognizer.numberOfTapsRequired = 2
+        self.view.addGestureRecognizer(tapRecognizer)
         
-        let pinch = UIPinchGestureRecognizer.init(target: self, action: #selector(pinchTap(pinch:)))
-        self.view.addGestureRecognizer(pinch)
+        let pinchRecognizer = UIPinchGestureRecognizer(target: self, action: #selector(_pinchAction(recognizer:)))
+        self.view.addGestureRecognizer(pinchRecognizer)
     }
     
-    @objc func doubleTap(tap: UITapGestureRecognizer) {
-        self.scanObj?.setVideoScale(isZoom: _isZoom)
-        _isZoom = !_isZoom
+    @objc private func _doubleTapAction(recognizer: UITapGestureRecognizer) {
+        _isScanVideoZoomIn = !_isScanVideoZoomIn
+        scanObj.isVideoZoomIn = _isScanVideoZoomIn
     }
     
-    @objc func pinchTap(pinch: UIPinchGestureRecognizer) {
-        if pinch.scale > 8 {
-            _isZoom = true
-        } else if pinch.scale < 0.125 {
-            _isZoom = false
-        }
-        let finish = pinch.state == .ended
-        self.scanObj?.setVideoScale(scale: pinch.scale, finish: finish)
+    @objc private func _pinchAction(recognizer: UIPinchGestureRecognizer) {
+        let state = recognizer.state
+        let isfinished = (state == .ended) || (state == .cancelled) || (state == .failed)
+        scanObj.setVideoZoom(pinchScale: recognizer.scale, isfinished: isfinished)
+        _isScanVideoZoomIn = scanObj.isVideoZoomIn
     }
     
     open func setNeedCodeImage(needCodeImg:Bool)
@@ -93,10 +106,10 @@ open class LBXScanViewController: UIViewController, UIImagePickerControllerDeleg
     }
     
     override open func viewDidAppear(_ animated: Bool) {
-        
         super.viewDidAppear(animated)
         
-        drawScanView()
+        self.view.addSubview(qRScanView)
+        delegate?.drawwed()
         
         DispatchQueue.main.asyncAfter(deadline: .now()) {
             self.startScan()
@@ -104,57 +117,16 @@ open class LBXScanViewController: UIViewController, UIImagePickerControllerDeleg
         //        perform(#selector(LBXScanViewController.startScan), with: nil, afterDelay: 0.3)
     }
     
-    @objc open func startScan()
-    {
-        
-        if (scanObj == nil)
-        {
-            var cropRect = CGRect.zero
-            if isOpenInterestRect
-            {
-                cropRect = LBXScanView.getScanRectWithPreView(preView: self.view, style:scanStyle! )
-            }
-            
-            //指定识别几种码
-            if arrayCodeType == nil
-            {
-                arrayCodeType = [AVMetadataObject.ObjectType.qr as NSString ,AVMetadataObject.ObjectType.ean13 as NSString ,AVMetadataObject.ObjectType.code128 as NSString] as [AVMetadataObject.ObjectType]
-            }
-            
-            scanObj = LBXScanWrapper(videoPreView: self.view,objType:arrayCodeType!, isCaptureImg: isNeedCodeImage,cropRect:cropRect, success: { [weak self] (arrayResult) -> Void in
-                
-                if let strongSelf = self
-                {
-                    //停止扫描动画
-                    strongSelf.qRScanView?.stopScanAnimation()
-                    
-                    strongSelf.handleCodeResult(arrayResult: arrayResult)
-                }
-            })
-        }
-        
+    open func startScan() {
         //结束相机等待提示
-        qRScanView?.deviceStopReadying()
+        qRScanView.deviceStopReadying()
         
         //开始扫描动画
-        qRScanView?.startScanAnimation()
+        qRScanView.startScanAnimation()
         
         //相机运行
-        scanObj?.start()
+        scanObj.start()
     }
-    
-    open func drawScanView()
-    {
-        if qRScanView == nil
-        {
-            qRScanView = LBXScanView(frame: self.view.frame,vstyle:scanStyle! )
-            self.view.addSubview(qRScanView!)
-            delegate?.drawwed()
-        }
-        //        qRScanView?.deviceStartReadying(readyStr: readyString)
-        
-    }
-    
     
     /**
      处理扫码结果，如果是继承本控制器的，可以重写该方法,作出相应地处理，或者设置delegate作出相应处理
@@ -185,9 +157,9 @@ open class LBXScanViewController: UIViewController, UIImagePickerControllerDeleg
         
         NSObject.cancelPreviousPerformRequests(withTarget: self)
         
-        qRScanView?.stopScanAnimation()
+        qRScanView.stopScanAnimation()
         
-        scanObj?.stop()
+        scanObj.stop()
     }
     
     open func openPhotoAlbum()
