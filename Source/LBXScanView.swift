@@ -381,10 +381,9 @@ open class LBXScanView: UIView
         //ref:http://www.cocoachina.com/ios/20141225/10763.html
         let size = preView.bounds.size;
         let p1 = size.height/size.width;
-        
-        let p2:CGFloat = 1920.0/1080.0 //使用了1080p的图像输出
+        let p2:CGFloat = 1280.0 / 720.0 
         if p1 < p2 {
-            let fixHeight = size.width * 1920.0 / 1080.0;
+            let fixHeight = size.width * 1280.0 / 720.0;
             let fixPadding = (fixHeight - size.height)/2;
             rectOfInterest = CGRect(x: (cropRect.origin.y + fixPadding)/fixHeight,
                                     y: cropRect.origin.x/size.width,
@@ -393,7 +392,7 @@ open class LBXScanView: UIView
             
             
         } else {
-            let fixWidth = size.height * 1080.0 / 1920.0;
+            let fixWidth = size.height * 720.0 / 1280.0;
             let fixPadding = (fixWidth - size.width)/2;
             rectOfInterest = CGRect(x: cropRect.origin.y/size.height,
                                     y: (cropRect.origin.x + fixPadding)/fixWidth,

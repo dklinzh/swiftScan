@@ -34,13 +34,50 @@ public struct  LBXScanResult {
 
 open class LBXScanWrapper: NSObject,AVCaptureMetadataOutputObjectsDelegate {
     
-    let device = AVCaptureDevice.default(for: AVMediaType.video)
-    var input:AVCaptureDeviceInput?
-    var output:AVCaptureMetadataOutput
+    let device: AVCaptureDevice? = {
+        guard let device = AVCaptureDevice.default(for: AVMediaType.video) else {
+            return nil
+        }
+        
+        do {
+            if device.isFocusPointOfInterestSupported && device.isFocusModeSupported(.continuousAutoFocus) {
+                try device.lockForConfiguration()
+                if device.isAutoFocusRangeRestrictionSupported {
+                    device.autoFocusRangeRestriction = .near // @discussion
+                }
+                device.focusMode = .continuousAutoFocus
+                device.unlockForConfiguration()
+            }
+        } catch {
+            print("lockForConfiguration(): \(error)")
+        }
+        return device
+    }()
     
-    let session = AVCaptureSession()
-    var previewLayer:AVCaptureVideoPreviewLayer?
-    var stillImageOutput:AVCaptureStillImageOutput?
+    let input: AVCaptureDeviceInput?
+    
+    let output = AVCaptureMetadataOutput()
+    
+    let session: AVCaptureSession = {
+        let session = AVCaptureSession()
+        session.sessionPreset = AVCaptureSession.Preset.iFrame1280x720
+        return session
+    }()
+    
+    lazy var previewLayer: AVCaptureVideoPreviewLayer = {
+        let previewLayer = AVCaptureVideoPreviewLayer(session: session)
+        previewLayer.videoGravity = AVLayerVideoGravity.resizeAspectFill
+        return previewLayer
+    }()
+    
+    lazy var stillImageOutput: AVCaptureStillImageOutput = {
+        let stillImageOutput = AVCaptureStillImageOutput()
+        stillImageOutput.outputSettings = [AVVideoCodecJPEG : AVVideoCodecKey]
+        if session.canAddOutput(stillImageOutput) {
+            session.addOutput(stillImageOutput)
+        }
+        return stillImageOutput
+    }()
     
     //存储返回结果
     var arrayResult:[LBXScanResult] = [];
@@ -71,13 +108,8 @@ open class LBXScanWrapper: NSObject,AVCaptureMetadataOutputObjectsDelegate {
             let transitionRate: Float = 8.0
             do {
                 try input.device.lockForConfiguration()
-                if isVideoZoomIn {
-                    _currentZoomFactor = videoZoomFactors.max
-                    input.device.ramp(toVideoZoomFactor: _currentZoomFactor, withRate: transitionRate)
-                } else {
-                    _currentZoomFactor = videoZoomFactors.min
-                    input.device.ramp(toVideoZoomFactor: _currentZoomFactor, withRate: transitionRate)
-                }
+                _currentZoomFactor = isVideoZoomIn ? videoZoomFactors.max : videoZoomFactors.min
+                input.device.ramp(toVideoZoomFactor: _currentZoomFactor, withRate: transitionRate)
                 input.device.unlockForConfiguration()
             } catch let error as NSError {
                 print("device.lockForConfiguration(): \(error)")
@@ -96,82 +128,46 @@ open class LBXScanWrapper: NSObject,AVCaptureMetadataOutputObjectsDelegate {
      */
     init( videoPreView:UIView,objType:[AVMetadataObject.ObjectType] = [(AVMetadataObject.ObjectType.qr as NSString) as AVMetadataObject.ObjectType],isCaptureImg:Bool,cropRect:CGRect=CGRect.zero,success:@escaping ( ([LBXScanResult]) -> Void) )
     {
-        do{
-            input = try AVCaptureDeviceInput(device: device!)
-        }
-        catch let error as NSError {
-            print("AVCaptureDeviceInput(): \(error)")
-        }
-        
         successBlock = success
-        
-        // Output
-        output = AVCaptureMetadataOutput()
-        
         isNeedCaptureImage = isCaptureImg
         
-        stillImageOutput = AVCaptureStillImageOutput();
+        if let device = device {
+            do {
+                input = try AVCaptureDeviceInput(device: device)
+            } catch {
+                print("AVCaptureDeviceInput(): \(error)")
+                input = nil
+            }
+        } else {
+            input = nil
+        }
         
         super.init()
         
-        if device == nil || input == nil {
+        guard let input = input else {
             return
         }
-        
-        if session.canAddInput(input!) {
-            session.addInput(input!)
+        if session.canAddInput(input) {
+            session.addInput(input)
         }
         
         if session.canAddOutput(output) {
             session.addOutput(output)
         }
         
-        if session.canAddOutput(stillImageOutput!) {
-            session.addOutput(stillImageOutput!)
-        }
-        
-        let outputSettings:Dictionary = [AVVideoCodecJPEG:AVVideoCodecKey]
-        stillImageOutput?.outputSettings = outputSettings
-        
-        session.sessionPreset = AVCaptureSession.Preset.high
-        
         //参数设置
         output.setMetadataObjectsDelegate(self, queue: DispatchQueue.main)
-        
         output.metadataObjectTypes = objType
         
-        //        output.metadataObjectTypes = [AVMetadataObjectTypeQRCode,AVMetadataObjectTypeEAN13Code, AVMetadataObjectTypeEAN8Code, AVMetadataObjectTypeCode128Code]
-        
-        if !cropRect.equalTo(CGRect.zero)
-        {
+        if cropRect != .zero {
             //启动相机后，直接修改该参数无效
             output.rectOfInterest = cropRect
         }
         
-        previewLayer = AVCaptureVideoPreviewLayer(session: session)
-        previewLayer?.videoGravity = AVLayerVideoGravity.resizeAspectFill
-        
         var frame:CGRect = videoPreView.frame
         frame.origin = CGPoint.zero
-        previewLayer?.frame = frame
-        
-        videoPreView.layer .insertSublayer(previewLayer!, at: 0)
-        
-        if ( device!.isFocusPointOfInterestSupported && device!.isFocusModeSupported(AVCaptureDevice.FocusMode.continuousAutoFocus) )
-        {
-            do
-            {
-                try input?.device.lockForConfiguration()
-                
-                input?.device.focusMode = AVCaptureDevice.FocusMode.continuousAutoFocus
-                
-                input?.device.unlockForConfiguration()
-            }
-            catch let error as NSError {
-                print("device.lockForConfiguration(): \(error)")
-                
-            }
-        }
+        previewLayer.frame = frame
+        videoPreView.layer.insertSublayer(previewLayer, at: 0)
     }
     
     /// 通过捏合手势缩放镜头视频
@@ -282,10 +278,10 @@ open class LBXScanWrapper: NSObject,AVCaptureMetadataOutputObjectsDelegate {
     //MARK: ----拍照
     open func captureImage()
     {
-        let stillImageConnection:AVCaptureConnection? = connectionWithMediaType(mediaType: AVMediaType.video as AVMediaType, connections: (stillImageOutput?.connections)! as [AnyObject])
+        let stillImageConnection:AVCaptureConnection? = connectionWithMediaType(mediaType: AVMediaType.video as AVMediaType, connections: stillImageOutput.connections as [AnyObject])
         
         
-        stillImageOutput?.captureStillImageAsynchronously(from: stillImageConnection!, completionHandler: { (imageDataSampleBuffer, error) -> Void in
+        stillImageOutput.captureStillImageAsynchronously(from: stillImageConnection!, completionHandler: { (imageDataSampleBuffer, error) -> Void in
             
             self.stop()
             if imageDataSampleBuffer != nil
