@@ -41,7 +41,7 @@ open class LBXScanViewController: UIViewController, UIImagePickerControllerDeleg
         })
     }()
     
-    open lazy var scanStyle: LBXScanViewStyle = LBXScanViewStyle()
+    open var scanStyle: LBXScanViewStyle = LBXScanViewStyle()
     
     open lazy var qRScanView: LBXScanView = LBXScanView(frame: self.view.frame, vstyle: scanStyle)
     
@@ -62,6 +62,9 @@ open class LBXScanViewController: UIViewController, UIImagePickerControllerDeleg
     /// 扫描视频镜头是否放大
     private var _isScanVideoZoomIn: Bool = false
     
+    private var _videoZoomingTimer: Timer?
+    private var _videoZoomFactor: CGFloat = 0.0
+    
     override open func viewDidLoad() {
         super.viewDidLoad()
         
@@ -78,11 +81,45 @@ open class LBXScanViewController: UIViewController, UIImagePickerControllerDeleg
         
         let pinchRecognizer = UIPinchGestureRecognizer(target: self, action: #selector(_pinchAction(recognizer:)))
         self.view.addGestureRecognizer(pinchRecognizer)
+        
+        NotificationCenter.default.addObserver(self, selector: #selector(_observeAVCaptureSession(notification:)), name: .AVCaptureSessionDidStartRunning, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(_observeAVCaptureSession(notification:)), name: .AVCaptureSessionDidStopRunning, object: nil)
+    }
+    
+    @objc private func _observeAVCaptureSession(notification: Notification) {
+        switch notification.name {
+        case .AVCaptureSessionDidStartRunning:
+            if !_isScanVideoZoomIn {
+                _videoZoomingTimer = Timer.scheduledTimer(timeInterval: scanStyle.animationPeriod * 2, target: self, selector: #selector(_scanVideoZoomIn), userInfo: nil, repeats: true)
+            }
+            break
+        case .AVCaptureSessionDidStopRunning:
+            _videoZoomingTimer?.invalidate()
+            break
+        default:
+            break
+        }
+    }
+    
+    @objc private func _scanVideoZoomIn() {
+        if !_isScanVideoZoomIn {
+            _videoZoomFactor += 2.0
+            scanObj.setVideoZoom(zoomFactor: _videoZoomFactor, transitionRate: 2.0)
+            
+            _isScanVideoZoomIn = scanObj.isVideoZoomIn
+            if _isScanVideoZoomIn {
+                _videoZoomingTimer?.invalidate()
+            }
+        } else {
+            _videoZoomingTimer?.invalidate()
+        }
     }
     
     @objc private func _doubleTapAction(recognizer: UITapGestureRecognizer) {
         _isScanVideoZoomIn = !_isScanVideoZoomIn
         scanObj.isVideoZoomIn = _isScanVideoZoomIn
+        
+        _videoZoomingTimer?.invalidate()
     }
     
     @objc private func _pinchAction(recognizer: UIPinchGestureRecognizer) {
@@ -90,6 +127,8 @@ open class LBXScanViewController: UIViewController, UIImagePickerControllerDeleg
         let isfinished = (state == .ended) || (state == .cancelled) || (state == .failed)
         scanObj.setVideoZoom(pinchScale: recognizer.scale, isfinished: isfinished)
         _isScanVideoZoomIn = scanObj.isVideoZoomIn
+        
+        _videoZoomingTimer?.invalidate()
     }
     
     open func setNeedCodeImage(needCodeImg:Bool)
@@ -218,8 +257,8 @@ open class LBXScanViewController: UIViewController, UIImagePickerControllerDeleg
         alertController.addAction(alertAction)
         present(alertController, animated: true, completion: nil)
     }
-    deinit
-    {
-        //        print("LBXScanViewController deinit")
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
 }

@@ -48,16 +48,19 @@ open class LBXScanView: UIView
         switch (viewStyle.anmiationStyle)
         {
         case LBXScanViewAnimationStyle.LineMove:
-            scanLineAnimation = LBXScanLineAnimation.instance()
+            let scanLineAnimation = LBXScanLineAnimation()
+            scanLineAnimation.duration = vstyle.animationPeriod
+            self.scanLineAnimation = scanLineAnimation
             break
         case LBXScanViewAnimationStyle.NetGrid:
-            scanNetAnimation = LBXScanNetAnimation.instance()
+            let scanNetAnimation = LBXScanNetAnimation()
+            scanNetAnimation.duration = vstyle.animationPeriod
+            self.scanNetAnimation = scanNetAnimation
             break
         case LBXScanViewAnimationStyle.LineStill:
             scanLineStill = UIImageView()
             scanLineStill?.image = viewStyle.animationImage
             break
-            
             
         default:
             break
@@ -87,29 +90,18 @@ open class LBXScanView: UIView
         
     }
     
-    deinit
-    {
-        if (scanLineAnimation != nil)
-        {
-            scanLineAnimation!.stopStepAnimating()
-        }
-        if (scanNetAnimation != nil)
-        {
-            scanNetAnimation!.stopStepAnimating()
-        }
+    deinit {
+        scanLineAnimation?.stopStepAnimating()
         
-        
-        //        print("LBXScanView deinit")
+        scanNetAnimation?.stopStepAnimating()
     }
     
     
     /**
      *  开始扫描动画
      */
-    func startScanAnimation()
-    {
-        if isAnimationing
-        {
+    func startScanAnimation() {
+        if isAnimationing {
             return
         }
         
@@ -117,20 +109,14 @@ open class LBXScanView: UIView
         
         let cropRect:CGRect = getScanRectForAnimation()
         
-        switch viewStyle.anmiationStyle
-        {
+        switch viewStyle.anmiationStyle {
         case LBXScanViewAnimationStyle.LineMove:
-            
-            //            print(NSStringFromCGRect(cropRect))
-            
-            scanLineAnimation!.startAnimatingWithRect(animationRect: cropRect, parentView: self, image:viewStyle.animationImage )
+            scanLineAnimation?.startAnimatingWithRect(animationRect: cropRect, parentView: self, image: viewStyle.animationImage)
             break
         case LBXScanViewAnimationStyle.NetGrid:
-            
-            scanNetAnimation!.startAnimatingWithRect(animationRect: cropRect, parentView: self, image:viewStyle.animationImage )
+            scanNetAnimation?.startAnimatingWithRect(animationRect: cropRect, parentView: self, image: viewStyle.animationImage)
             break
         case LBXScanViewAnimationStyle.LineStill:
-            
             let stillRect = CGRect(x: cropRect.origin.x+20,
                                    y: cropRect.origin.y + cropRect.size.height/2,
                                    width: cropRect.size.width-40,
@@ -143,7 +129,6 @@ open class LBXScanView: UIView
             break
             
         default: break
-            
         }
     }
     

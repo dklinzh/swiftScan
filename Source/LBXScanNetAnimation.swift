@@ -12,6 +12,7 @@ class LBXScanNetAnimation: UIImageView {
     
     var isAnimationing = false
     var animationRect:CGRect = CGRect.zero
+    var duration: TimeInterval = 1.2
     
     static public func instance()->LBXScanNetAnimation
     {
@@ -51,7 +52,7 @@ class LBXScanNetAnimation: UIImageView {
         
         self.alpha = 0.0;
         
-        UIView.animate(withDuration: 1.2, animations: { () -> Void in
+        UIView.animate(withDuration: duration, animations: { () -> Void in
             
             self.alpha = 1.0;
             

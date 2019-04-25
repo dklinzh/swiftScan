@@ -100,20 +100,12 @@ open class LBXScanWrapper: NSObject,AVCaptureMetadataOutputObjectsDelegate {
     /// 是否放大镜头视频
     var isVideoZoomIn: Bool = false {
         didSet {
-            guard oldValue != isVideoZoomIn,
-                let input = input else {
+            guard oldValue != isVideoZoomIn else {
                     return
             }
             
-            let transitionRate: Float = 8.0
-            do {
-                try input.device.lockForConfiguration()
-                _currentZoomFactor = isVideoZoomIn ? videoZoomFactors.max : videoZoomFactors.min
-                input.device.ramp(toVideoZoomFactor: _currentZoomFactor, withRate: transitionRate)
-                input.device.unlockForConfiguration()
-            } catch let error as NSError {
-                print("device.lockForConfiguration(): \(error)")
-            }
+            setVideoZoom(zoomFactor: isVideoZoomIn ? videoZoomFactors.max : videoZoomFactors.min,
+                         transitionRate: 8.0)
         }
     }
     
@@ -170,6 +162,34 @@ open class LBXScanWrapper: NSObject,AVCaptureMetadataOutputObjectsDelegate {
         videoPreView.layer.insertSublayer(previewLayer, at: 0)
     }
     
+    func setVideoZoom(zoomFactor: CGFloat, transitionRate: Float = 2.0) {
+        guard let device = device,
+            zoomFactor != _currentZoomFactor else {
+                return
+        }
+        
+        var _zoomFactor = zoomFactor
+        if zoomFactor < videoZoomFactors.min {
+            _zoomFactor = videoZoomFactors.min
+        } else if zoomFactor > videoZoomFactors.max {
+            _zoomFactor = videoZoomFactors.max
+        }
+        
+        do {
+            try device.lockForConfiguration()
+            _currentZoomFactor = _zoomFactor
+            if _zoomFactor == videoZoomFactors.min {
+                isVideoZoomIn = false
+            } else if _zoomFactor == videoZoomFactors.max {
+                isVideoZoomIn = true
+            }
+            device.ramp(toVideoZoomFactor: _zoomFactor, withRate: transitionRate)
+            device.unlockForConfiguration()
+        } catch let error as NSError {
+            print("device.lockForConfiguration(): \(error)")
+        }
+    }
+    
     /// 通过捏合手势缩放镜头视频
     ///
     /// - Parameters:
@@ -185,17 +205,18 @@ open class LBXScanWrapper: NSObject,AVCaptureMetadataOutputObjectsDelegate {
             return
         }
         
-        guard let input = input else {
-            return
+        guard let device = device,
+            zoomFactor != _currentZoomFactor else {
+                return
         }
         
         do {
-            try input.device.lockForConfiguration()
+            try device.lockForConfiguration()
             if isfinished {
                 _currentZoomFactor = zoomFactor
             }
-            input.device.ramp(toVideoZoomFactor: zoomFactor, withRate: 2.0)
-            input.device.unlockForConfiguration()
+            device.ramp(toVideoZoomFactor: zoomFactor, withRate: 2.0)
+            device.unlockForConfiguration()
         } catch let error as NSError {
             print("device.lockForConfiguration(): \(error)")
         }
@@ -744,8 +765,7 @@ open class LBXScanWrapper: NSObject,AVCaptureMetadataOutputObjectsDelegate {
         return newPic!;
     }
     
-    deinit
-    {
-        //        print("LBXScanWrapper deinit")
+    deinit {
+//        NotificationCenter.default.removeObserver(self)
     }
 }

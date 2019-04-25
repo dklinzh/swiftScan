@@ -12,6 +12,7 @@ class LBXScanLineAnimation: UIImageView {
     
     var isAnimationing = false
     var animationRect: CGRect = CGRect.zero
+    var duration: TimeInterval = 1.4
     
     func startAnimatingWithRect(animationRect: CGRect, parentView: UIView, image: UIImage?)
     { 
@@ -45,7 +46,7 @@ class LBXScanLineAnimation: UIImageView {
         self.frame = frame;
         self.alpha = 0.0;
         
-        UIView.animate(withDuration: 1.4, animations: { () -> Void in
+        UIView.animate(withDuration: duration, animations: { () -> Void in
             
             self.alpha = 1.0;
             
