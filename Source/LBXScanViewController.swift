@@ -90,7 +90,7 @@ open class LBXScanViewController: UIViewController, UIImagePickerControllerDeleg
         switch notification.name {
         case .AVCaptureSessionDidStartRunning:
             if !_isScanVideoZoomIn {
-                _videoZoomingTimer = Timer.scheduledTimer(timeInterval: scanStyle.animationPeriod * 2, target: self, selector: #selector(_scanVideoZoomIn), userInfo: nil, repeats: true)
+                _videoZoomingTimer = Timer.scheduledTimer(timeInterval: scanStyle.animationPeriod, target: self, selector: #selector(_scanVideoZoomIn), userInfo: nil, repeats: true)
             }
             break
         case .AVCaptureSessionDidStopRunning:
