@@ -23,9 +23,7 @@ public enum LBXScanViewPhotoframeAngleStyle {
     case On // 在矩形框的4个角上，覆盖
 }
 
-
 public struct LBXScanViewStyle {
-    
     // MARK: - 中心位置矩形框
 
     /// 是否需要绘制扫码矩形框，默认YES
@@ -43,7 +41,7 @@ public struct LBXScanViewStyle {
     /// 矩形框线条颜色，默认白色
     public var colorRetangleLine = UIColor.white
 
-    //MARK: - 矩形框(扫码区域)周围4个角
+    // MARK: - 矩形框(扫码区域)周围4个角
 
     /// 扫码区域的4个角类型
     public var photoframeAngleStyle = LBXScanViewPhotoframeAngleStyle.Outer
@@ -54,11 +52,11 @@ public struct LBXScanViewStyle {
     /// 扫码区域4个角的宽度和高度
     public var photoframeAngleW: CGFloat = 24.0
     public var photoframeAngleH: CGFloat = 24.0
-    
+
     /// 扫码区域4个角的线条宽度,默认6，建议8到4之间
     public var photoframeLineW: CGFloat = 6
 
-    //MARK: - 动画效果
+    // MARK: - 动画效果
 
     /// 扫码动画效果:线条或网格
     public var anmiationStyle = LBXScanViewAnimationStyle.LineMove
@@ -69,10 +67,9 @@ public struct LBXScanViewStyle {
     /// 扫描动画执行周期时间
     public var animationPeriod: TimeInterval = 1.5
 
-    //MARK: - 非识别区域颜色, 默认 RGBA (0,0,0,0.5)，范围（0--1）
+    // MARK: - 非识别区域颜色, 默认 RGBA (0,0,0,0.5)，范围（0--1）
 
     public var color_NotRecoginitonArea = UIColor(red: 0.0, green: 0.0, blue: 0.0, alpha: 0.5)
 
-    public init() { }
-    
+    public init() {}
 }

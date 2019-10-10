@@ -6,9 +6,9 @@
 //  Copyright © 2015年 xialibing. All rights reserved.
 //
 
-import UIKit
-import Foundation
 import AVFoundation
+import Foundation
+import UIKit
 
 public protocol LBXScanViewControllerDelegate: class {
     func scanFinished(scanResult: LBXScanResult, error: String?)
@@ -19,93 +19,90 @@ public protocol QRRectDelegate {
 }
 
 open class LBXScanViewController: UIViewController {
-    
     // 返回扫码结果，也可以通过继承本控制器，改写该handleCodeResult方法即可
     open weak var scanResultDelegate: LBXScanViewControllerDelegate?
 
     open var delegate: QRRectDelegate?
-    
+
     open lazy var scanObj: LBXScanWrapper = {
         var cropRect = CGRect.zero
         if isOpenInterestRect {
             cropRect = LBXScanView.getScanRectWithPreView(preView: self.view, style: scanStyle)
         }
-        
+
         return LBXScanWrapper(videoPreView: self.view, objType: arrayCodeType, isCaptureImg: isNeedCodeImage, cropRect: cropRect, success: { [weak self] (arrayResult) -> Void in
             guard let strongSelf = self else { return }
-            
-            //停止扫描动画
+
+            // 停止扫描动画
             strongSelf.qRScanView.stopScanAnimation()
-            
+
             strongSelf.handleCodeResult(arrayResult: arrayResult)
         })
     }()
-    
+
     open var scanStyle: LBXScanViewStyle = LBXScanViewStyle()
-    
+
     open lazy var qRScanView: LBXScanView = LBXScanView(frame: self.view.frame, vstyle: scanStyle)
-    
-    //启动区域识别功能
+
+    // 启动区域识别功能
     open var isOpenInterestRect = false
-    
-    //识别码的类型
+
+    // 识别码的类型
     public var arrayCodeType: [AVMetadataObject.ObjectType] = [AVMetadataObject.ObjectType.qr as NSString,
                                                                AVMetadataObject.ObjectType.ean13 as NSString,
                                                                AVMetadataObject.ObjectType.code128 as NSString] as [AVMetadataObject.ObjectType]
-    
-    //是否需要识别后的当前图像
-    public  var isNeedCodeImage = false
-    
-    //相机启动提示文字
-    public var readyString:String! = "loading"
-    
+
+    // 是否需要识别后的当前图像
+    public var isNeedCodeImage = false
+
+    // 相机启动提示文字
+    public var readyString: String! = "loading"
+
     /// 扫描视频镜头是否放大
     private var _isScanVideoZoomIn: Bool = false
-    
+
     private var _videoZoomingTimer: Timer?
     private var _videoZoomFactor: CGFloat = 0.0
-    
-    override open func viewDidLoad() {
+
+    open override func viewDidLoad() {
         super.viewDidLoad()
-        
+
         // Do any additional setup after loading the view.
-        
+
         // [self.view addSubview:_qRScanView];
-        self.view.backgroundColor = UIColor.black
-        self.edgesForExtendedLayout = UIRectEdge(rawValue: 0)
-        
-        self.view.isUserInteractionEnabled = true
+        view.backgroundColor = UIColor.black
+        edgesForExtendedLayout = UIRectEdge(rawValue: 0)
+
+        view.isUserInteractionEnabled = true
         let tapRecognizer = UITapGestureRecognizer(target: self, action: #selector(_doubleTapAction(recognizer:)))
         tapRecognizer.numberOfTapsRequired = 2
-        self.view.addGestureRecognizer(tapRecognizer)
-        
+        view.addGestureRecognizer(tapRecognizer)
+
         let pinchRecognizer = UIPinchGestureRecognizer(target: self, action: #selector(_pinchAction(recognizer:)))
-        self.view.addGestureRecognizer(pinchRecognizer)
-        
+        view.addGestureRecognizer(pinchRecognizer)
+
         NotificationCenter.default.addObserver(self, selector: #selector(_observeAVCaptureSession(notification:)), name: .AVCaptureSessionDidStartRunning, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(_observeAVCaptureSession(notification:)), name: .AVCaptureSessionDidStopRunning, object: nil)
     }
-    
+
     @objc private func _observeAVCaptureSession(notification: Notification) {
         switch notification.name {
         case .AVCaptureSessionDidStartRunning:
             if !_isScanVideoZoomIn {
                 _videoZoomingTimer = Timer.scheduledTimer(timeInterval: scanStyle.animationPeriod, target: self, selector: #selector(_scanVideoZoomIn), userInfo: nil, repeats: true)
             }
-            break
         case .AVCaptureSessionDidStopRunning:
             _videoZoomingTimer?.invalidate()
-            break
         default:
             break
         }
     }
-    
+
     @objc private func _scanVideoZoomIn() {
         if !_isScanVideoZoomIn {
             _videoZoomFactor += 2.0
             scanObj.setVideoZoom(zoomFactor: _videoZoomFactor, transitionRate: 2.0)
-            
+
             _isScanVideoZoomIn = scanObj.isVideoZoomIn
             if _isScanVideoZoomIn {
                 _videoZoomingTimer?.invalidate()
@@ -114,61 +111,53 @@ open class LBXScanViewController: UIViewController {
             _videoZoomingTimer?.invalidate()
         }
     }
-    
+
     @objc private func _doubleTapAction(recognizer: UITapGestureRecognizer) {
         _isScanVideoZoomIn = !_isScanVideoZoomIn
         scanObj.isVideoZoomIn = _isScanVideoZoomIn
-        
+
         _videoZoomingTimer?.invalidate()
     }
-    
+
     @objc private func _pinchAction(recognizer: UIPinchGestureRecognizer) {
         let state = recognizer.state
         let isfinished = (state == .ended) || (state == .cancelled) || (state == .failed)
         scanObj.setVideoZoom(pinchScale: recognizer.scale, isfinished: isfinished)
         _isScanVideoZoomIn = scanObj.isVideoZoomIn
-        
+
         _videoZoomingTimer?.invalidate()
     }
-    
-    open func setNeedCodeImage(needCodeImg:Bool)
-    {
-        isNeedCodeImage = needCodeImg;
+
+    open func setNeedCodeImage(needCodeImg: Bool) {
+        isNeedCodeImage = needCodeImg
     }
-    //设置框内识别
-    open func setOpenInterestRect(isOpen:Bool){
+
+    // 设置框内识别
+    open func setOpenInterestRect(isOpen: Bool) {
         isOpenInterestRect = isOpen
     }
 
     open override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        
-        drawScanView()
-        
+
+        view.addSubview(qRScanView)
+        delegate?.drawwed()
+//        qRScanView.deviceStartReadying(readyStr: readyString)
+
         DispatchQueue.main.asyncAfter(deadline: .now()) {
             self.startScan()
         }
-        //        perform(#selector(LBXScanViewController.startScan), with: nil, afterDelay: 0.3)
     }
-    
+
     open func startScan() {
-        //结束相机等待提示
+        // 结束相机等待提示
         qRScanView.deviceStopReadying()
-        
-        //开始扫描动画
+
+        // 开始扫描动画
         qRScanView.startScanAnimation()
-        
-        //相机运行
+
+        // 相机运行
         scanObj.start()
-    }
-    
-    open func drawScanView() {
-        if qRScanView == nil {
-            qRScanView = LBXScanView(frame: view.frame, vstyle: scanStyle!)
-            view.addSubview(qRScanView!)
-            delegate?.drawwed()
-        }
-        qRScanView?.deviceStartReadying(readyStr: readyString)
     }
 
     /**
@@ -186,15 +175,15 @@ open class LBXScanViewController: UIViewController {
             delegate.scanFinished(scanResult: result, error: "no scan result")
         }
     }
-    
+
     open override func viewWillDisappear(_ animated: Bool) {
         NSObject.cancelPreviousPerformRequests(withTarget: self)
-        
+
         qRScanView.stopScanAnimation()
-        
+
         scanObj.stop()
     }
-    
+
     @objc open func openPhotoAlbum() {
         LBXPermissions.authorizePhotoWith { [weak self] _ in
             let picker = UIImagePickerController()
@@ -206,13 +195,14 @@ open class LBXScanViewController: UIViewController {
     }
 }
 
-//MARK: - 图片选择代理方法
+// MARK: - 图片选择代理方法
+
 extension LBXScanViewController: UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-    
-    //MARK: -----相册选择图片识别二维码 （条形码没有找到系统方法）
+    // MARK: -----相册选择图片识别二维码 （条形码没有找到系统方法）
+
     public func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
         picker.dismiss(animated: true, completion: nil)
-        
+
         let editedImage = info[UIImagePickerController.InfoKey.editedImage] as? UIImage
         let originalImage = info[UIImagePickerController.InfoKey.originalImage] as? UIImage
         guard let image = editedImage ?? originalImage else {
@@ -224,17 +214,15 @@ extension LBXScanViewController: UIImagePickerControllerDelegate, UINavigationCo
             handleCodeResult(arrayResult: arrayResult)
         }
     }
-    
 }
 
-//MARK: - 私有方法
+// MARK: - 私有方法
+
 private extension LBXScanViewController {
-    
     func showMsg(title: String?, message: String?) {
         let alertController = UIAlertController(title: nil, message: message, preferredStyle: .alert)
         let alertAction = UIAlertAction(title: NSLocalizedString("OK", comment: "OK"), style: .default, handler: nil)
         alertController.addAction(alertAction)
         present(alertController, animated: true, completion: nil)
     }
-    
 }

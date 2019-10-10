@@ -9,22 +9,21 @@
 import UIKit
 
 class LBXScanLineAnimation: UIImageView {
-    
     var isAnimationing = false
     var animationRect = CGRect.zero
-    
+
     func startAnimatingWithRect(animationRect: CGRect, parentView: UIView, image: UIImage?) {
         self.image = image
         self.animationRect = animationRect
         parentView.addSubview(self)
-        
+
         isHidden = false
         isAnimationing = true
         if image != nil {
             stepAnimation()
         }
     }
-    
+
     @objc func stepAnimation() {
         guard isAnimationing else {
             return
@@ -48,23 +47,17 @@ class LBXScanLineAnimation: UIImageView {
             self.perform(#selector(LBXScanLineAnimation.stepAnimation), with: nil, afterDelay: 0.3)
         })
     }
-    
+
     func stopStepAnimating() {
         isHidden = true
         isAnimationing = false
     }
-    
+
     public static func instance() -> LBXScanLineAnimation {
         return LBXScanLineAnimation()
     }
-    
+
     deinit {
         stopStepAnimating()
     }
-    
 }
-
-
-
-
-

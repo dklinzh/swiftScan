@@ -6,16 +6,14 @@
 //  Copyright © 2015年 xialibing. All rights reserved.
 //
 
-import UIKit
+import AssetsLibrary
 import AVFoundation
 import Photos
-import AssetsLibrary
-
-
+import UIKit
 
 class LBXPermissions: NSObject {
-    
-    //MARK: ----获取相册权限
+    // MARK: ----获取相册权限
+
     static func authorizePhotoWith(comletion: @escaping (Bool) -> Void) {
         let granted = PHPhotoLibrary.authorizationStatus()
         switch granted {
@@ -24,17 +22,18 @@ class LBXPermissions: NSObject {
         case PHAuthorizationStatus.denied, PHAuthorizationStatus.restricted:
             comletion(false)
         case PHAuthorizationStatus.notDetermined:
-            PHPhotoLibrary.requestAuthorization({ status in
+            PHPhotoLibrary.requestAuthorization { status in
                 DispatchQueue.main.async {
                     comletion(status == PHAuthorizationStatus.authorized)
                 }
-            })
+            }
         @unknown default:
             comletion(false)
         }
     }
-    
-    //MARK: ---相机权限
+
+    // MARK: ---相机权限
+
     static func authorizeCameraWith(completion: @escaping (Bool) -> Void) {
         let granted = AVCaptureDevice.authorizationStatus(for: AVMediaType.video)
         switch granted {
@@ -54,8 +53,9 @@ class LBXPermissions: NSObject {
             completion(false)
         }
     }
-    
-    //MARK: 跳转到APP系统设置权限界面
+
+    // MARK: 跳转到APP系统设置权限界面
+
     static func jumpToSystemPrivacySetting() {
         guard let appSetting = URL(string: UIApplication.openSettingsURLString) else {
             return
@@ -66,5 +66,4 @@ class LBXPermissions: NSObject {
             UIApplication.shared.openURL(appSetting)
         }
     }
-    
 }

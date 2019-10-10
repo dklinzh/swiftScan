@@ -9,14 +9,13 @@
 import UIKit
 
 class LBXScanNetAnimation: UIImageView {
-    
     var isAnimationing = false
     var animationRect = CGRect.zero
 
     public static func instance() -> LBXScanNetAnimation {
         return LBXScanNetAnimation()
     }
-    
+
     func startAnimatingWithRect(animationRect: CGRect, parentView: UIView, image: UIImage?) {
         self.image = image
         self.animationRect = animationRect
@@ -53,7 +52,7 @@ class LBXScanNetAnimation: UIImageView {
 
             frame.origin.y += (frame.size.height - hImg)
             frame.size.height = hImg
-            
+
             self.frame = frame
 
         }, completion: { _ in
@@ -65,5 +64,4 @@ class LBXScanNetAnimation: UIImageView {
         isHidden = true
         isAnimationing = false
     }
-    
 }
