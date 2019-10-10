@@ -57,7 +57,7 @@ open class LBXScanWrapper: NSObject, AVCaptureMetadataOutputObjectsDelegate {
     
     let session: AVCaptureSession = {
         let session = AVCaptureSession()
-        session.sessionPreset = AVCaptureSession.Preset.iFrame1280x720
+        session.sessionPreset = AVCaptureSession.Preset.hd1280x720
         return session
     }()
     
