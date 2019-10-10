@@ -18,11 +18,11 @@ public protocol QRRectDelegate {
     func drawwed()
 }
 
-open class LBXScanViewController: UIViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+open class LBXScanViewController: UIViewController {
     
-    //返回扫码结果，也可以通过继承本控制器，改写该handleCodeResult方法即可
+    // 返回扫码结果，也可以通过继承本控制器，改写该handleCodeResult方法即可
     open weak var scanResultDelegate: LBXScanViewControllerDelegate?
-    
+
     open var delegate: QRRectDelegate?
     
     open lazy var scanObj: LBXScanWrapper = {
@@ -139,16 +139,11 @@ open class LBXScanViewController: UIViewController, UIImagePickerControllerDeleg
     open func setOpenInterestRect(isOpen:Bool){
         isOpenInterestRect = isOpen
     }
-    
-    override open func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-    }
-    
-    override open func viewDidAppear(_ animated: Bool) {
+
+    open override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         
-        self.view.addSubview(qRScanView)
-        delegate?.drawwed()
+        drawScanView()
         
         DispatchQueue.main.asyncAfter(deadline: .now()) {
             self.startScan()
@@ -167,33 +162,32 @@ open class LBXScanViewController: UIViewController, UIImagePickerControllerDeleg
         scanObj.start()
     }
     
+    open func drawScanView() {
+        if qRScanView == nil {
+            qRScanView = LBXScanView(frame: view.frame, vstyle: scanStyle!)
+            view.addSubview(qRScanView!)
+            delegate?.drawwed()
+        }
+        qRScanView?.deviceStartReadying(readyStr: readyString)
+    }
+
     /**
      处理扫码结果，如果是继承本控制器的，可以重写该方法,作出相应地处理，或者设置delegate作出相应处理
      */
-    open func handleCodeResult(arrayResult:[LBXScanResult])
-    {
-        if let delegate = scanResultDelegate  {
-            
-            self.navigationController? .popViewController(animated: true)
-            let result:LBXScanResult = arrayResult[0]
-            
+    open func handleCodeResult(arrayResult: [LBXScanResult]) {
+        guard let delegate = scanResultDelegate else {
+            fatalError("you must set scanResultDelegate or override this method without super keyword")
+        }
+        navigationController?.popViewController(animated: true)
+        if let result = arrayResult.first {
             delegate.scanFinished(scanResult: result, error: nil)
-            
-        }else{
-            
-            for result:LBXScanResult in arrayResult
-            {
-                print("%@",result.strScanned ?? "")
-            }
-            
-            let result:LBXScanResult = arrayResult[0]
-            
-            showMsg(title: result.strBarCodeType, message: result.strScanned)
+        } else {
+            let result = LBXScanResult(str: nil, img: nil, barCodeType: nil, corner: nil)
+            delegate.scanFinished(scanResult: result, error: "no scan result")
         }
     }
     
-    override open func viewWillDisappear(_ animated: Bool) {
-        
+    open override func viewWillDisappear(_ animated: Bool) {
         NSObject.cancelPreviousPerformRequests(withTarget: self)
         
         qRScanView.stopScanAnimation()
@@ -201,64 +195,46 @@ open class LBXScanViewController: UIViewController, UIImagePickerControllerDeleg
         scanObj.stop()
     }
     
-    open func openPhotoAlbum()
-    {
-        LBXPermissions.authorizePhotoWith { [weak self] (granted) in
-            
+    @objc open func openPhotoAlbum() {
+        LBXPermissions.authorizePhotoWith { [weak self] _ in
             let picker = UIImagePickerController()
-            
             picker.sourceType = UIImagePickerController.SourceType.photoLibrary
-            
-            picker.delegate = self;
-            
+            picker.delegate = self
             picker.allowsEditing = true
-            
             self?.present(picker, animated: true, completion: nil)
         }
     }
+}
+
+//MARK: - 图片选择代理方法
+extension LBXScanViewController: UIImagePickerControllerDelegate, UINavigationControllerDelegate {
     
     //MARK: -----相册选择图片识别二维码 （条形码没有找到系统方法）
-    public func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [String : Any])
-    {
+    public func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
         picker.dismiss(animated: true, completion: nil)
         
-        var image:UIImage? = info[UIImagePickerController.InfoKey.editedImage.rawValue] as? UIImage
-        
-        if (image == nil )
-        {
-            image = info[UIImagePickerController.InfoKey.originalImage.rawValue] as? UIImage
+        let editedImage = info[UIImagePickerController.InfoKey.editedImage] as? UIImage
+        let originalImage = info[UIImagePickerController.InfoKey.originalImage] as? UIImage
+        guard let image = editedImage ?? originalImage else {
+            showMsg(title: nil, message: NSLocalizedString("Identify failed", comment: "Identify failed"))
+            return
         }
-        
-        if(image != nil)
-        {
-            let arrayResult = LBXScanWrapper.recognizeQRImage(image: image!)
-            if arrayResult.count > 0
-            {
-                handleCodeResult(arrayResult: arrayResult)
-                return
-            }
+        let arrayResult = LBXScanWrapper.recognizeQRImage(image: image)
+        if !arrayResult.isEmpty {
+            handleCodeResult(arrayResult: arrayResult)
         }
-        
-        showMsg(title: nil, message: NSLocalizedString("Identify failed", comment: "Identify failed"))
     }
     
-    func showMsg(title:String?,message:String?)
-    {
-        
-        let alertController = UIAlertController(title: nil, message:message, preferredStyle: UIAlertController.Style.alert)
-        let alertAction = UIAlertAction(title: NSLocalizedString("OK", comment: "OK"), style: UIAlertAction.Style.default) { (alertAction) in
-            
-            //                if let strongSelf = self
-            //                {
-            //                    strongSelf.startScan()
-            //                }
-        }
-        
+}
+
+//MARK: - 私有方法
+private extension LBXScanViewController {
+    
+    func showMsg(title: String?, message: String?) {
+        let alertController = UIAlertController(title: nil, message: message, preferredStyle: .alert)
+        let alertAction = UIAlertAction(title: NSLocalizedString("OK", comment: "OK"), style: .default, handler: nil)
         alertController.addAction(alertAction)
         present(alertController, animated: true, completion: nil)
     }
     
-    deinit {
-        NotificationCenter.default.removeObserver(self)
-    }
 }
